@@ -36,6 +36,7 @@ int main()
             int master_tid = 0;
             unique_lock lk(mutexes[tid]);
             while(1) {
+                cvs[tid].notify_all();
                 cvs[tid].wait(lk, [tid]{return f_ptrs[tid] != 0 || dead[tid];});
                 cout<<"thread "<<tid<<" working..."<<endl;
                 if(dead[tid])
@@ -125,18 +126,23 @@ ll hirschberg(vector<pair<int, int>>& vec,
             f_ptrs[0] = [&]{
                 dp1 = small(vec, 1, ln, z, m);
                 --counter;
+                cout<<"t0 gives up mut[0]"<<endl;
             };
             f_ptrs[1] = [&]{
                 dp2 = small(vec, -1, rn, z+1, m);
                 unique_lock l3(mutexes[0]);
+                cout<<"t1 spins on mut[0]"<<endl;
                 cvs[0].wait(l3, []{return counter == 1;});
                 --counter;
-                cvs[0].notify_one();
+                cvs[0].notify_all();
+                cout<<"t1 gives up mut[0]"<<endl;
             };
         }
         cvs[0].notify_one();
         cvs[1].notify_one();
+        cout<<"mt waits for mut[0]"<<endl;
         cvs[0].wait(l1, []{return counter == 0;});
+        cout<<"mt got mut[0]"<<endl;
     }
     cout<<ln<<" "<<rn<<" "<<m<<endl;
     int max_x = 0;

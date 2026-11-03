@@ -5,4 +5,4 @@
 	g++ -o $@ $^ -std=c++20 -g -D_GLIBCXX_DEBUG -pthread
 
 stdg: std.cpp
-	g++ -o $@ $^ -std=c++20 -g -D_GLIBCXX_DEBUG -pthread -fsanitize=thread
+	g++ -o $@ $^ -std=c++20 -g -D_GLIBCXX_DEBUG -pthread
