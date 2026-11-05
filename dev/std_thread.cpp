@@ -17,13 +17,6 @@ array<condition_variable, max_T> f_cv{};
 array<function<void()>, max_T> f_ptrs{};
 array<int, max_T> dead{};
 array<atomic<int>, max_T> sub_alive{};
-/*
-vector<mutex> f_mut(T);
-vector<condition_variable> f_cv(T);
-vector<function<void()>> f_ptrs(T);
-vector<int> dead(T);
-vector<atomic<int>> sub_alive(T);
-*/
 
 ll hirschberg(vector<pair<int, int>>& vec,
            int ln, int rn, int m, vector<char>& result, int tl, int tr);
@@ -45,18 +38,15 @@ int main(int argc, char** argv)
     vector<thread> thread_pool;
     for(int tid=0; tid<T; tid++) {
         thread_pool.emplace_back([tid]{
-//            cout<<"thread "<<tid<<" helloing..."<<endl;
             unique_lock lk(f_mut[tid]);
             while(1) {
                 f_cv[tid].notify_all();
                 f_cv[tid].wait(lk, [tid]{return f_ptrs[tid] != 0 || dead[tid];});
-//                cout<<"thread "<<tid<<" working..."<<endl;
                 if(dead[tid])
                     break;
                 f_ptrs[tid]();
                 f_ptrs[tid] = nullptr;
             }
-//            cout<<"thread "<<tid<<" dying..."<<endl;
         });
     }
     while(t--) {
@@ -86,7 +76,6 @@ int main(int argc, char** argv)
         unique_lock lk(f_mut[i]);
         dead[i] = 1;
         f_cv[i].notify_one();
-//        cout<<"Notified "<<i<<endl;
     }
     for(auto& t : thread_pool)
         t.join();
@@ -122,7 +111,6 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
     int thread_count = tr-tl+1;
     int numdone = 0;
     sub_alive[tl] = thread_count;
-//    cout<<"Have "<<thread_count<<" threads, working on "<<ln<<".."<<rn<<endl;
     vector<function<void()>> f_ptrs_vec(thread_count);
     for(int tid2=0; tid2<thread_count; tid2++) {
         f_ptrs_vec[tid2] = [&]{
@@ -131,13 +119,11 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
                 unique_lock lock(g_mut);
                 tid = numdone;
                 ++numdone;
-//                cout<<"Locked! "<<tid<<endl;
                 if(numdone == thread_count) {
                     g_cv.notify_all();
                 } else {
                     g_cv.wait(lock, [&]{return numdone >= thread_count;});
                 }
-//                cout<<"Working! "<<tid<<endl;
             }
             
             for(int i=ln;; i+=direction) {
@@ -151,15 +137,12 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
                     }
                 }
                 unique_lock lock(g_mut);
-//                cout<<"Done some part "<<tid<<";"<<k<<endl;
                 ++numdone;
                 if(numdone == (k+1)*thread_count) {
                     g_cv.notify_all();
                 } else {
                     g_cv.wait(lock, [&]{return numdone >= (k+1)*thread_count;});
                 }
-//                cout<<"Waited some part "<<tid<<"; "<<k<<endl;
-//                cout<<"Aftermath: "<<numdone<<" "<<(k+1)*thread_count<<endl;
                 if(i==rn)
                     break;
                 ++k;
@@ -172,7 +155,6 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
         };
     }
     for(int tid=1; tid<thread_count; tid++) {
-//        cout<<"ACQ lock "<<tid+tl<<endl;
         unique_lock lk(f_mut[tid+tl]);
         f_ptrs[tid+tl] = f_ptrs_vec[tid];
         f_cv[tid+tl].notify_one();
@@ -181,14 +163,12 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
     while (int count = sub_alive[tl]) {
         sub_alive[tl].wait(count);
     }
-//    cout<<"Gonna return! "<<ln<<" "<<rn<<"!"<<endl;
     return dp[rn%2];
 }
 
 ll hirschberg(vector<pair<int, int>>& vec,
            int ln, int rn, int m, vector<char>& result, int tl, int tr)
 {
-//    cout<<"Hirsc "<<ln<<" "<<rn<<" "<<m<<":\n";
     if(ln>rn)
     {
         throw;
@@ -234,7 +214,6 @@ ll hirschberg(vector<pair<int, int>>& vec,
             g_cv.wait(lg, [&]{return counter == 0;});
         }
     }
-//    cout<<ln<<" "<<rn<<" "<<m<<endl;
     int max_x = 0;
     ll max_value = dp1[0] + dp2[m];
     for(int i=1; i<=m; i++)
@@ -242,7 +221,6 @@ ll hirschberg(vector<pair<int, int>>& vec,
         {
             max_x=i; max_value = new_value;
         }
-//    return max_value;
     if((rn-ln < 50) || (tl == tr)) {
         hirschberg(vec, ln, z, max_x, result, tl, tr);
         hirschberg(vec, z+1, rn, m-max_x, result, tl, tr);

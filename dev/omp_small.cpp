@@ -49,7 +49,7 @@ vector<ll> small(vector<pair<int, int>>& vec, int direction,
 {
 //    cout<<"Small "<<ln<<" "<<rn<<" "<<m<<" "<<direction<<":\n";
     array<vector<ll>, 2> dp{vector<ll>(m+1), vector<ll>(m+1)};
-    #pragma omp parallel num_threads(8) if(m>400)
+    #pragma omp parallel num_threads(6) if(m>400)
     for(int i=ln;; i+=direction) {
         int mod_two = i % 2;
         #pragma omp for
