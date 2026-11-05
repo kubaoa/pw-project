@@ -7,15 +7,28 @@
 using namespace std;
 using ll = long long;
 
+int T;
+int fallback = 200;
+
 vector<ll> small(vector<pair<int, int>>& vec, int direction,
            int ln, int rn, int m);
 
 ll hirschberg(vector<pair<int, int>>& vec,
            int ln, int rn, int m, vector<char>& result);
 
-int main()
+int main(int argc, char** argv)
 {
     omp_set_max_active_levels(2);
+    if(argc < 2) {
+        cout<<"Usage: "<<argv[0]<<" [number of threads, 2<=T, T even]\n";
+        return 1;
+    }
+    T = atoi(argv[1]);
+    if((T < 2) || (T&1)) {
+        cout<<"Expected an even number >= 2. Got "<<T<<". Terminating\n";
+        return 1;
+    }
+    T >>= 1;
     cin.tie(0)->sync_with_stdio(0);
     int t;
     cin>>t;
@@ -49,7 +62,7 @@ vector<ll> small(vector<pair<int, int>>& vec, int direction,
 {
 //    cout<<"Small "<<ln<<" "<<rn<<" "<<m<<" "<<direction<<":\n";
     array<vector<ll>, 2> dp{vector<ll>(m+1), vector<ll>(m+1)};
-    #pragma omp parallel num_threads(3) if(m>400)
+    #pragma omp parallel num_threads(T) if(m>fallback)
     for(int i=ln;; i+=direction) {
         int mod_two = i % 2;
         #pragma omp for

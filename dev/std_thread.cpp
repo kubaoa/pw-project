@@ -11,6 +11,8 @@
 using namespace std;
 using ll = long long;
 
+int fallback = 300;
+
 constexpr int max_T = 64;
 array<mutex, max_T> f_mut{};
 array<condition_variable, max_T> f_cv{};
@@ -103,7 +105,7 @@ vector<ll> small(vector<pair<int, int>>& vec, int direction,
 vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
            int ln, int rn, int m, int tl, int tr)
 {
-    if((tl == tr) || (m < 500))
+    if((tl == tr) || (m < fallback))
         return small(vec, direction, ln, rn, m);
     array<vector<ll>, 2> dp{vector<ll>(m+1), vector<ll>(m+1)};
     mutex g_mut;
@@ -183,7 +185,7 @@ ll hirschberg(vector<pair<int, int>>& vec,
     }
     int z = (rn+ln)/2;
     vector<ll> dp1, dp2;
-    if((rn-ln < 500) || (tl == tr)) {
+    if((rn-ln < fallback) || (tl == tr)) {
         dp1 = small(vec, 1, ln, z, m);
         dp2 = small(vec, -1, rn, z+1, m);
     }
@@ -221,7 +223,7 @@ ll hirschberg(vector<pair<int, int>>& vec,
         {
             max_x=i; max_value = new_value;
         }
-    if((rn-ln < 50) || (tl == tr)) {
+    if((rn-ln < fallback) || (tl == tr)) {
         hirschberg(vec, ln, z, max_x, result, tl, tr);
         hirschberg(vec, z+1, rn, m-max_x, result, tl, tr);
     }
