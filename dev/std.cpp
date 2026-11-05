@@ -11,19 +11,34 @@
 using namespace std;
 using ll = long long;
 
-constexpr int T = 8;
-array<mutex, T> f_mut{};
-array<condition_variable, T> f_cv{};
-array<function<void()>, T> f_ptrs{};
-array<int, T> new_master{};
-array<int, T> dead{};
-array<array<atomic<int>, T>, T> sub_alive{};
+constexpr int max_T = 64;
+array<mutex, max_T> f_mut{};
+array<condition_variable, max_T> f_cv{};
+array<function<void()>, max_T> f_ptrs{};
+array<int, max_T> dead{};
+array<atomic<int>, max_T> sub_alive{};
+/*
+vector<mutex> f_mut(T);
+vector<condition_variable> f_cv(T);
+vector<function<void()>> f_ptrs(T);
+vector<int> dead(T);
+vector<atomic<int>> sub_alive(T);
+*/
 
 ll hirschberg(vector<pair<int, int>>& vec,
            int ln, int rn, int m, vector<char>& result, int tl, int tr);
 
-int main()
+int main(int argc, char** argv)
 {
+    if(argc < 2) {
+        cout<<"Usage: "<<argv[0]<<" [number of threads, 2<=T<="<<max_T<<"]\n";
+        return 1;
+    }
+    int T = atoi(argv[1]);
+    if((T < 2) || (T > max_T)) {
+        cout<<"Expected number in range [2.."<<max_T<<"]. Got "<<T<<". Terminating\n";
+        return 1;
+    }
     cin.tie(0)->sync_with_stdio(0);
     int t;
     cin>>t;
@@ -106,7 +121,7 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
     condition_variable g_cv;
     int thread_count = tr-tl+1;
     int numdone = 0;
-    sub_alive[tl][tr] = thread_count;
+    sub_alive[tl] = thread_count;
 //    cout<<"Have "<<thread_count<<" threads, working on "<<ln<<".."<<rn<<endl;
     vector<function<void()>> f_ptrs_vec(thread_count);
     for(int tid2=0; tid2<thread_count; tid2++) {
@@ -150,8 +165,8 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
                 ++k;
             }
             {
-                if(!--sub_alive[tl][tr]) {
-                    sub_alive[tl][tr].notify_one();
+                if(!--sub_alive[tl]) {
+                    sub_alive[tl].notify_one();
                 }
             }
         };
@@ -163,8 +178,8 @@ vector<ll> small_multithread(vector<pair<int, int>>& vec, int direction,
         f_cv[tid+tl].notify_one();
     }
     f_ptrs_vec[0]();
-    while (int count = sub_alive[tl][tr]) {
-        sub_alive[tl][tr].wait(count);
+    while (int count = sub_alive[tl]) {
+        sub_alive[tl].wait(count);
     }
 //    cout<<"Gonna return! "<<ln<<" "<<rn<<"!"<<endl;
     return dp[rn%2];
@@ -227,8 +242,37 @@ ll hirschberg(vector<pair<int, int>>& vec,
         {
             max_x=i; max_value = new_value;
         }
-    return max_value;
-    hirschberg(vec, ln, z, max_x, result, tl, tr);
-    hirschberg(vec, z+1, rn, m-max_x, result, tl, tr);
+//    return max_value;
+    if((rn-ln < 50) || (tl == tr)) {
+        hirschberg(vec, ln, z, max_x, result, tl, tr);
+        hirschberg(vec, z+1, rn, m-max_x, result, tl, tr);
+    }
+    else
+    {
+        int counter = 0;
+        mutex g_mut;
+        condition_variable g_cv;
+        int mid_thread = (tl+tr)/2;
+        {
+            unique_lock lg(g_mut);
+            counter = 2;
+        }
+        {
+            unique_lock l2(f_mut[mid_thread+1]);
+            f_ptrs[mid_thread+1] = [&]{
+                hirschberg(vec, ln, z, max_x, result, mid_thread+1, tr);
+                unique_lock lg(g_mut);
+                --counter;
+                g_cv.notify_one();
+            };
+        }
+        f_cv[mid_thread+1].notify_one();
+        hirschberg(vec, z+1, rn, m-max_x, result, tl, mid_thread);
+        {
+            unique_lock lg(g_mut);
+            --counter;
+            g_cv.wait(lg, [&]{return counter == 0;});
+        }
+    }
     return max_value;
 }
